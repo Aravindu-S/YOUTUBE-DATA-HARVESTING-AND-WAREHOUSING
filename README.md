@@ -21,15 +21,15 @@ Streamlit library was used to create a user-friendly UI that enables users to in
 
 **REQUIRED LIBRARIES:**
 
-1.googleapiclient.discovery
+- googleapiclient.discovery
 
-2.streamlit
+- streamlit
 
-3.psycopg2
+- psycopg2
 
-4.pymongo
+- pymongo
 
-5.pandas
+- pandas
 
 **FEATURES:**
 
