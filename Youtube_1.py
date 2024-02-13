@@ -156,7 +156,61 @@ def channel_details(Channel_Id):
 
 # T0 create Channel table in SQL, fetch data from MongoDB and insert data into SQL
 
-def channel_table():
+# Creating table in SQL
+
+db_1=psycopg2.connect(host='localhost',
+                    user='postgres',
+                    password='@122Madras',
+                    database='Youtube',
+                    port= '5432')
+
+cursor = db_1.cursor()
+
+# Creating channel table in postgres
+
+create_query='''CREATE TABLE IF NOT EXISTS channels(Channel_Name varchar(100),
+                                                Channel_Ids varchar(100) primary key,
+                                                Subscription_Count bigint,
+                                                Channel_Views bigint,
+                                                Channel_Description text,
+                                                Total_videos int,
+                                                Playlist_Id varchar(100))'''
+cursor.execute(create_query)
+db_1.commit()
+
+
+# Creating videos table in postgres  
+
+
+create_query='''CREATE TABLE IF NOT EXISTS videos(Channel_Name  varchar(100),
+                                                Channel_Ids varchar(50),
+                                                Video_id  varchar(50) primary key,
+                                                video_name  varchar(100),
+                                                video_description text ,
+                                                published_date timestamp,
+                                                view_count bigint,
+                                                like_count bigint,
+                                                favorite_count int,
+                                                comment_count bigint, 
+                                                duration interval,
+                                                thumbnail varchar(100),
+                                                caption_status varchar(50)
+                                                )'''
+cursor.execute(create_query)
+db_1.commit()
+
+# Creating comment table in postgres
+
+create_query='''CREATE TABLE IF NOT EXISTS comments(Comment_Id varchar(200) primary key,
+                                                    Video_id varchar(100),
+                                                    Comment_Text text,
+                                                    Comment_Author varchar(150),
+                                                    Comment_PublishedAt timestamp  
+                                                    )'''
+cursor.execute(create_query)
+db_1.commit()
+
+def channel_table(Channel_Name):
 
 # SQL Connection
 
@@ -168,32 +222,13 @@ def channel_table():
 
     cursor = db_1.cursor()
 
-    drop_query= '''DROP TABLE IF EXISTS channels'''
-
-    cursor.execute(drop_query)
-    db_1.commit()
-
-    # Creating channel table in postgres
-    create_query='''CREATE TABLE IF NOT EXISTS channels(Channel_Name varchar(100),
-                                                    Channel_Ids varchar(100) primary key,
-                                                    Subscription_Count bigint,
-                                                    Channel_Views bigint,
-                                                    Channel_Description text,
-                                                    Total_videos int,
-                                                    Playlist_Id varchar(100))'''
-    cursor.execute(create_query)
-    db_1.commit()
-
-    
-    
-
-
 # Fetching channel data from MongoDB 
     channel_data=[]
     col1= db1["Channel Details"]
 
     for cha_data in col1.find({},{'_id':0,'Channel Info':1}):
-        channel_data.append(cha_data['Channel Info'])
+        if cha_data['Channel Info']['Channel_Name'] == Channel_Name:
+            channel_data.append(cha_data['Channel Info'])
 
     df1=pd.DataFrame(channel_data)
 
@@ -211,7 +246,8 @@ def channel_table():
                                             Total_videos,
                                             Playlist_Id)
 
-                                            VALUES(%s,%s,%s,%s,%s,%s,%s)'''
+                                            VALUES(%s,%s,%s,%s,%s,%s,%s)
+                            ON CONFLICT (Channel_Ids) DO NOTHING'''
         
         value=(row['Channel_Name'],
             row['Channel_Ids'],
@@ -225,8 +261,9 @@ def channel_table():
         db_1.commit()
 
 # T0 create Videos table in SQL, fetch data from MongoDB and insert data into SQL
+        
 
-def video_table():
+def video_table(Channel_Name):
 
 #SQL Connection     
   
@@ -237,41 +274,16 @@ def video_table():
                         port= '5432')
 
     cursor = db_1.cursor()
-
-    drop_query= '''DROP TABLE IF EXISTS videos'''
-
-    cursor.execute(drop_query)
-    db_1.commit()
-
-    # Creating videos table in postgres  
-    
-    create_query='''CREATE TABLE IF NOT EXISTS videos(Channel_Name  varchar(100),
-                                                    Channel_Ids varchar(50),
-                                                    Video_id  varchar(50) primary key,
-                                                    video_name  varchar(100),
-                                                    video_description text ,
-                                                    published_date timestamp,
-                                                    view_count bigint,
-                                                    like_count bigint,
-                                                    favorite_count int,
-                                                    comment_count bigint, 
-                                                    duration interval,
-                                                    thumbnail varchar(100),
-                                                    caption_status varchar(50)
-                                                    )'''
-    cursor.execute(create_query)
-    db_1.commit()
-
-    
         
 
     # Fetching videos data from MongoDB
     videos_data=[]
     col1= db1["Channel Details"]
 
-    for vid_data in col1.find({},{'_id':0,'Video Info':1}):
-        for i in vid_data['Video Info']:
-            videos_data.append(i)
+    for vid_data in col1.find({},{'_id':0,'Channel Info':1,'Video Info':1}):
+        if vid_data['Channel Info']['Channel_Name'] == Channel_Name:
+            for i in vid_data['Video Info']:
+                videos_data.append(i)
 
     df2=pd.DataFrame(videos_data)
 
@@ -292,7 +304,8 @@ def video_table():
                                             thumbnail,
                                             caption_status)
                                             
-                                            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'''
+                                            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                         ON CONFLICT (Video_id) DO NOTHING'''
         
         value=(row['Channel_Name'],
             row['Channel_Ids'],
@@ -316,7 +329,7 @@ def video_table():
 
 # T0 create Comments table in SQL, fetch data from MongoDB and insert data into SQL
 
-def comment_table():
+def comment_table(Channel_Name):
 
 #SQL Connection 
 
@@ -328,31 +341,14 @@ def comment_table():
 
     cursor = db_1.cursor()
 
-    drop_query= '''DROP TABLE IF EXISTS comments'''
-
-    cursor.execute(drop_query)
-    db_1.commit()
-
-# Creating comment table in postgres
-
-    create_query='''CREATE TABLE IF NOT EXISTS comments(Comment_Id varchar(200) primary key,
-                                                        Video_id varchar(100),
-                                                        Comment_Text text,
-                                                        Comment_Author varchar(150),
-                                                        Comment_PublishedAt timestamp  
-                                                        )'''
-    cursor.execute(create_query)
-    db_1.commit()
-
-
-
     # Fetching comment data from MongoDB
     comment_data=[]
     col1= db1["Channel Details"]
 
-    for com_data in col1.find({},{'_id':0,'Comment info':1}):
-        for i in com_data['Comment info']:
-            comment_data.append(i)
+    for com_data in col1.find({},{'_id':0,'Channel Info':1,'Comment info':1}):
+        if com_data['Channel Info']['Channel_Name'] == Channel_Name:
+            for i in com_data['Comment info']:
+                comment_data.append(i)
 
     df3=pd.DataFrame(comment_data)
 
@@ -364,7 +360,8 @@ def comment_table():
                                             Comment_Author,
                                             Comment_PublishedAt)
                                             
-                                            VALUES(%s,%s,%s,%s,%s)'''
+                                            VALUES(%s,%s,%s,%s,%s)
+                            ON CONFLICT (Comment_Id) DO NOTHING'''
         
         value=(row['Comment_Id'],
             row['Video_id'],
@@ -379,10 +376,10 @@ def comment_table():
         db_1.commit()
 
 
-def tables():
-    channel_table()
-    video_table()
-    comment_table()
+def tables(Channel_Name):
+    channel_table(Channel_Name)
+    video_table(Channel_Name)
+    comment_table(Channel_Name)
 
     return ('Tables created in SQL successfully')
 
@@ -418,6 +415,15 @@ def show_comment_details():
             comment_data.append(i)
 
     df3=st.dataframe(comment_data)
+
+def cha_name():
+    channel_name=[]
+    col1= db1["Channel Details"]
+
+    for cha_data in col1.find({},{'_id':0,'Channel Info':1}):
+        name=cha_data['Channel Info']["Channel_Name"]
+        channel_name.append(name)
+    return (channel_name)
 
 
 
@@ -463,9 +469,12 @@ if st.button("Click to fetch and store channel details"):
     else:
         insert=channel_details(channel_id)
         st.success(insert)
+        
+channel_names=cha_name() #To get the channel names of the channel that are uploaded in MongoDB
+name = st.selectbox("Select the channel name to migrate to SQL",(channel_names))
 
 if st.button("Migrate the data to SQL"):
-    Table= tables()
+    Table= tables(name)
     st.success(Table)
 
 show_table=st.radio('Select the table to display', ('CHANNELS','VIDEOS','COMMENTS'), horizontal=True)
